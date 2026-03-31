@@ -1,0 +1,56 @@
+{
+  "name": "artificial-doctor",
+  "version": "1.0.0",
+  "description": "AI-powered medical symptom analyzer and medicine recommendation platform",
+  "main": "backend/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required for this project\"",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.js\" \"**/*.json\" \"**/*.html\" \"**/*.css\""
+  },
+  "keywords": [
+    "medical",
+    "symptom",
+    "diagnosis",
+    "ai",
+    "health",
+    "medicine",
+    "recommendation"
+  ],
+  "author": "Shaikh Mohd Arsan",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "compression": "^1.7.4",
+    "helmet": "^7.1.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "@supabase/supabase-js": "^2.38.0",
+    "express-rate-limit": "^7.1.5",
+    "validator": "^13.11.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/artificial-doctor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/artificial-doctor/issues"
+  },
+  "homepage": "https://github.com/yourusername/artificial-doctor#readme"
+}

@@ -1,0 +1,67 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.classpath
+.c9/
+
+# Build output
+dist/
+build/
+out/
+
+# Logs
+logs/
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Editor backups
+*.bak
+*.backup
+
+# Database backups
+*.sql.bak
+*.db.backup
+
+# Private keys
+*.pem
+*.key
+*.private
+
+# Cache
+.cache/
+.turbo/
+
+# Misc
+.eslintcache
+.stylelintcache
