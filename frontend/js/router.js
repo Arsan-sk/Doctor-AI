@@ -92,6 +92,12 @@ class Router {
             case 'cart':
                 this.initializeCartPage();
                 break;
+            case 'checkout':
+                this.initializeCheckoutPage();
+                break;
+            case 'confirmation':
+                this.initializeConfirmationPage();
+                break;
             default:
                 break;
         }
@@ -125,8 +131,25 @@ class Router {
      * Initialize cart page
      */
     initializeCartPage() {
-        console.log('Cart page initialized');
+        console.log('🛒 Cart page initialized');
+        // Force re-render of cart with fresh state
         displayCart();
+    }
+
+    /**
+     * Initialize checkout page
+     */
+    initializeCheckoutPage() {
+        console.log('Checkout page initialized');
+        initializeCheckoutPage();
+    }
+
+    /**
+     * Initialize confirmation page
+     */
+    initializeConfirmationPage() {
+        console.log('Confirmation page initialized');
+        initializeConfirmationPage();
     }
 
     /**

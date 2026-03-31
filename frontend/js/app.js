@@ -889,6 +889,9 @@ function handleNewAnalysis() {
 
     // Reset selected symptoms display
     updateSelectedSymptoms();
+    
+    // Update review button visibility
+    updateReviewOrderButton();
 
     // Navigate to symptoms page
     router.navigate('symptoms');
@@ -897,6 +900,8 @@ function handleNewAnalysis() {
 }
 
 function displayCart() {
+    console.log('📦 Displaying cart. Current items:', appState.cart.length, 'Items:', appState.cart);
+    
     // Update cart count in results page
     const cartItemCount = document.getElementById('cartItemCount');
     if (cartItemCount) {
@@ -908,15 +913,22 @@ function displayCart() {
     const cartSummary = document.getElementById('cartSummary');
     const totalItems = document.getElementById('totalItems');
     const totalAmount = document.getElementById('totalAmount');
+    
+    // Always clear the container first
+    if (cartItemsContainer) {
+        cartItemsContainer.innerHTML = '';
+    }
+    
+    // Check if cart is empty
     if (appState.cart.length === 0) {
-        if (cartItemsContainer) cartItemsContainer.innerHTML = '';
+        console.log('✅ Cart is empty, showing empty state');
         if (emptyCart) emptyCart.classList.remove('hidden');
         if (cartSummary) cartSummary.classList.add('hidden');
     } else {
+        console.log('📦 Cart has items, displaying them');
         if (emptyCart) emptyCart.classList.add('hidden');
         if (cartSummary) cartSummary.classList.remove('hidden');
         if (cartItemsContainer) {
-            cartItemsContainer.innerHTML = '';
             let totalQty = 0, totalPrice = 0;
             appState.cart.forEach((item, i) => {
                 totalQty += item.quantity;
@@ -971,20 +983,65 @@ function removeFromCart(i) {
 }
 
 function handleCheckout() {
-    if (appState.cart.length === 0) { helpers.showToast('Cart empty', 'error'); return; }
-    const order = { id: Date.now(), items: appState.cart, totalAmount: appState.cart.reduce((s,i)=>s+i.quantity*100,0), status: 'pending', createdAt: new Date().toISOString() };
+    if (appState.cart.length === 0) { 
+        helpers.showToast('Cart empty', 'error'); 
+        return; 
+    }
+    const order = { 
+        id: Date.now(), 
+        items: JSON.parse(JSON.stringify(appState.cart)), 
+        totalAmount: appState.cart.reduce((s,i)=>s+i.quantity*100,0), 
+        status: 'pending', 
+        createdAt: new Date().toISOString() 
+    };
     appState.orders.push(order);
+    
+    // Clear cart after order is placed
     appState.cart = [];
+    appState.medicineQuantities = {};
+    
+    // Update cart count display
+    updateCartCountDisplay();
+    
     helpers.showToast('Order placed!', 'success');
     router.navigate('confirmation');
+}
+
+/**
+ * Initialize confirmation page buttons
+ */
+function initializeConfirmationPage() {
+    console.log('Initializing confirmation page...');
+    
+    // New Analysis button
+    const newOrderBtn = document.getElementById('newOrderBtn');
+    if (newOrderBtn) {
+        newOrderBtn.addEventListener('click', () => {
+            handleNewAnalysis();
+        });
+    }
+    
+    // Track Order button
+    const trackOrderBtn = document.getElementById('trackOrderBtn');
+    if (trackOrderBtn) {
+        trackOrderBtn.addEventListener('click', () => {
+            console.log('Track Order clicked');
+            helpers.showToast('Orders tracking coming soon!', 'info');
+            // TODO: Implement order tracking feature
+        });
+    }
 }
 
 /**
  * Handle view cart button
  */
 function handleViewCart() {
-    displayCart();
-    router.navigate('cart');
+    console.log('🛒 View Cart clicked. Current cart state:', appState.cart);
+    // Force immediate display of current cart state
+    requestAnimationFrame(() => {
+        displayCart();
+        router.navigate('cart');
+    });
 }
 
 function updateReviewOrderButton() {
@@ -996,6 +1053,84 @@ function updateReviewOrderButton() {
             proceedSection.classList.add('hidden');
         }
     }
+}
+
+/**
+ * Update cart count display everywhere
+ */
+function updateCartCountDisplay() {
+    const totalQty = appState.cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // Update in results page
+    const cartItemCount = document.getElementById('cartItemCount');
+    if (cartItemCount) {
+        cartItemCount.textContent = totalQty;
+    }
+    
+    // Update in navbar
+    const navCartCount = document.getElementById('cartCount');
+    if (navCartCount) {
+        navCartCount.textContent = totalQty;
+    }
+}
+
+/**
+ * Display checkout summary
+ */
+function displayCheckoutSummary() {
+    const checkoutItemsContainer = document.getElementById('checkoutItems');
+    const checkoutSubtotal = document.getElementById('checkoutSubtotal');
+    const checkoutTotal = document.getElementById('checkoutTotal');
+    
+    if (!checkoutItemsContainer) return;
+    
+    if (appState.cart.length === 0) {
+        checkoutItemsContainer.innerHTML = '<p class="no-items">No items in cart</p>';
+        if (checkoutSubtotal) checkoutSubtotal.textContent = '₹0';
+        if (checkoutTotal) checkoutTotal.textContent = '₹0';
+        return;
+    }
+    
+    checkoutItemsContainer.innerHTML = '';
+    let totalQty = 0, totalPrice = 0;
+    
+    appState.cart.forEach(item => {
+        totalQty += item.quantity;
+        totalPrice += item.quantity * 100;
+        
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'checkout-item';
+        itemDiv.innerHTML = `
+            <div class="item-details">
+                <h5>${item.name}</h5>
+                <p>₹${item.price || 100} × ${item.quantity}</p>
+            </div>
+            <div class="item-price">₹${item.quantity * 100}</div>
+        `;
+        checkoutItemsContainer.appendChild(itemDiv);
+    });
+    
+    if (checkoutSubtotal) checkoutSubtotal.textContent = '₹' + totalPrice;
+    if (checkoutTotal) checkoutTotal.textContent = '₹' + totalPrice;
+}
+
+/**
+ * Initialize checkout page buttons
+ */
+function initializeCheckoutPage() {
+    console.log('Initializing checkout page...');
+    
+    // Place Order button
+    const placeOrderBtn = document.getElementById('placeOrderBtn');
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', () => {
+            console.log('Place Order clicked');
+            handleCheckout();
+        });
+    }
+    
+    // Populate checkout items and summary
+    displayCheckoutSummary();
 }
 
 // ============================================
