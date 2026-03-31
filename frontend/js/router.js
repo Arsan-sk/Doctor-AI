@@ -14,6 +14,8 @@ class Router {
             results: 'resultsPage',
             cart: 'cartPage',
             checkout: 'checkoutPage',
+            orderPlaced: 'orderPlacedPage',
+            orderTracking: 'orderTrackingPage',
             confirmation: 'confirmationPage'
         };
     }
@@ -23,7 +25,7 @@ class Router {
      */
     async navigate(pageName) {
         // Check if page requires authentication
-        const protectedPages = ['symptoms', 'results', 'cart', 'checkout', 'confirmation'];
+        const protectedPages = ['symptoms', 'results', 'cart', 'checkout', 'orderPlaced', 'orderTracking', 'confirmation'];
         
         if (protectedPages.includes(pageName)) {
             if (!authManager.isAuthenticated()) {
@@ -90,10 +92,24 @@ class Router {
                 this.initializeSymptomsPage();
                 break;
             case 'cart':
-                this.initializeCartPage();
+                if (typeof initializeCartPage === 'function') {
+                    initializeCartPage();
+                }
                 break;
             case 'checkout':
-                this.initializeCheckoutPage();
+                if (typeof initializeCheckoutPageWithStores === 'function') {
+                    initializeCheckoutPageWithStores();
+                }
+                break;
+            case 'orderPlaced':
+                if (typeof initializeOrderPlacedPageUI === 'function') {
+                    initializeOrderPlacedPageUI();
+                }
+                break;
+            case 'orderTracking':
+                if (typeof initializeOrderTrackingPageUI === 'function') {
+                    initializeOrderTrackingPageUI();
+                }
                 break;
             case 'confirmation':
                 this.initializeConfirmationPage();
@@ -150,6 +166,26 @@ class Router {
     initializeConfirmationPage() {
         console.log('Confirmation page initialized');
         initializeConfirmationPage();
+    }
+
+    /**
+     * Initialize order placed page
+     */
+    initializeOrderPlacedPage() {
+        console.log('Order placed page initialized');
+        if (typeof initializeOrderPlacedPage === 'function') {
+            initializeOrderPlacedPage();
+        }
+    }
+
+    /**
+     * Initialize order tracking page
+     */
+    initializeOrderTrackingPage() {
+        console.log('Order tracking page initialized');
+        if (typeof initializeOrderTrackingPage === 'function') {
+            initializeOrderTrackingPage();
+        }
     }
 
     /**

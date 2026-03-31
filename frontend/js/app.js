@@ -6,6 +6,7 @@ import { authManager } from './auth.js';
 import { router } from './router.js';
 import { medicalData } from './utils/medical-data.js';
 import * as helpers from './utils/helpers.js';
+import persistentCart from './persistent-cart.js';
 
 // ============================================
 // APPLICATION STATE
@@ -261,13 +262,16 @@ function initializeModals() {
     });
 
     // Close modals on overlay click
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-        overlay.addEventListener('click', (e) => {
-            const modal = e.target.closest('.modal');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-        });
+    document.getElementById('registerModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'registerModal') {
+            document.getElementById('registerModal')?.classList.add('hidden');
+        }
+    });
+    
+    document.getElementById('loginModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'loginModal') {
+            document.getElementById('loginModal')?.classList.add('hidden');
+        }
     });
 
     // Close modals on Escape key
@@ -771,26 +775,45 @@ function displayAnalysisResults(analysisResults) {
     // Update cart count display - show total quantity
     const cartItemCount = document.getElementById('cartItemCount');
     if (cartItemCount) {
-        cartItemCount.textContent = appState.cart.reduce((sum, item) => sum + item.quantity, 0);
+        cartItemCount.textContent = persistentCart.persistentCartState.items.reduce((sum, item) => sum + item.quantity, 0);
     }
     
     // Update Review & Place Order button visibility
     updateReviewOrderButton();
 
-    // Add event listeners to action buttons
+    // Add event listeners to action buttons - use proper event handling
     const newAnalysisBtn = document.getElementById('newAnalysisBtn');
     if (newAnalysisBtn) {
-        newAnalysisBtn.addEventListener('click', handleNewAnalysis);
+        // Remove old listener by cloning
+        const newBtn = newAnalysisBtn.cloneNode(true);
+        newAnalysisBtn.parentNode.replaceChild(newBtn, newAnalysisBtn);
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleNewAnalysis();
+        });
     }
 
     const viewCartBtn = document.getElementById('viewCartBtn');
     if (viewCartBtn) {
-        viewCartBtn.addEventListener('click', handleViewCart);
+        const newViewCartBtn = viewCartBtn.cloneNode(true);
+        viewCartBtn.parentNode.replaceChild(newViewCartBtn, viewCartBtn);
+        newViewCartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleViewCart();
+        });
     }
 
     const reviewOrderBtn = document.getElementById('reviewOrderBtn');
     if (reviewOrderBtn) {
-        reviewOrderBtn.addEventListener('click', handleViewCart);
+        const newReviewBtn = reviewOrderBtn.cloneNode(true);
+        reviewOrderBtn.parentNode.replaceChild(newReviewBtn, reviewOrderBtn);
+        newReviewBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleViewCart();
+        });
     }
 }
 
@@ -829,49 +852,28 @@ function updateMedicineQuantityDisplay(medicineName) {
 }
 
 /**
- * Add medicine to cart
+ * Add medicine to persistent cart (API-backed)
  */
-function addMedicineToCart(medicineName, price) {
+async function addMedicineToCart(medicineName, price) {
     const quantity = appState.medicineQuantities[medicineName] || 1;
     
-    // Check if medicine already in cart
-    const existingItem = appState.cart.find(item => item.name === medicineName);
-    
-    if (existingItem) {
-        // Update quantity if already in cart
-        existingItem.quantity += quantity;
-        helpers.showToast(`${medicineName} quantity updated in cart! ✅`, 'success');
-    } else {
-        // Add new item to cart
-        const item = {
-            id: Date.now(),
-            name: medicineName,
-            price: price,
-            quantity: quantity,
-            addedAt: new Date().toISOString()
-        };
-        appState.cart.push(item);
-        helpers.showToast(`${medicineName} (Qty: ${quantity}) added to cart! ✅`, 'success');
+    try {
+        // Add to persistent cart via API
+        await persistentCart.addToCartPersistent(medicineName, quantity, price);
+        
+        // Reset quantity selector to 1
+        appState.medicineQuantities[medicineName] = 1;
+        updateMedicineQuantityDisplay(medicineName);
+        
+        // Update cart UI
+        persistentCart.updateCartUI();
+        
+        // Update Review & Place Order button visibility
+        updateReviewOrderButton();
+    } catch (error) {
+        console.error('Error adding to cart:', error);
+        helpers.showToast('Failed to add to cart', 'error');
     }
-    
-    // Reset quantity selector to 1
-    appState.medicineQuantities[medicineName] = 1;
-    updateMedicineQuantityDisplay(medicineName);
-    
-    // Update cart count in navbar
-    const cartItemCount = document.getElementById('cartItemCount');
-    if (cartItemCount) {
-        cartItemCount.textContent = appState.cart.reduce((sum, item) => sum + item.quantity, 0);
-    }
-    
-    // Also update cart count in navbar when present
-    const navCartCount = document.getElementById('cartCount');
-    if (navCartCount) {
-        navCartCount.textContent = appState.cart.reduce((sum, item) => sum + item.quantity, 0);
-    }
-    
-    // Update Review & Place Order button visibility
-    updateReviewOrderButton();
 }
 
 /**
@@ -882,9 +884,12 @@ function handleNewAnalysis() {
     appState.selectedSymptoms = [];
     appState.analysisResults = null;
 
-    // Uncheck all checkboxes
+    // Uncheck all checkboxes and un-highlight symptom cards
     document.querySelectorAll('.symptom-check').forEach(checkbox => {
         checkbox.checked = false;
+    });
+    document.querySelectorAll('.symptom-card.selected').forEach(card => {
+        card.classList.remove('selected');
     });
 
     // Reset selected symptoms display
@@ -899,65 +904,29 @@ function handleNewAnalysis() {
     helpers.showToast('Ready for new analysis! ✅', 'info');
 }
 
-function displayCart() {
-    console.log('📦 Displaying cart. Current items:', appState.cart.length, 'Items:', appState.cart);
+async function displayCart() {
+    console.log('📦 Loading cart from database...');
     
-    // Update cart count in results page
-    const cartItemCount = document.getElementById('cartItemCount');
-    if (cartItemCount) {
-        cartItemCount.textContent = appState.cart.reduce((sum, item) => sum + item.quantity, 0);
-    }
-    
-    const cartItemsContainer = document.getElementById('cartItems');
-    const emptyCart = document.getElementById('emptyCart');
-    const cartSummary = document.getElementById('cartSummary');
-    const totalItems = document.getElementById('totalItems');
-    const totalAmount = document.getElementById('totalAmount');
-    
-    // Always clear the container first
-    if (cartItemsContainer) {
-        cartItemsContainer.innerHTML = '';
-    }
-    
-    // Check if cart is empty
-    if (appState.cart.length === 0) {
-        console.log('✅ Cart is empty, showing empty state');
-        if (emptyCart) emptyCart.classList.remove('hidden');
-        if (cartSummary) cartSummary.classList.add('hidden');
-    } else {
-        console.log('📦 Cart has items, displaying them');
-        if (emptyCart) emptyCart.classList.add('hidden');
-        if (cartSummary) cartSummary.classList.remove('hidden');
-        if (cartItemsContainer) {
-            let totalQty = 0, totalPrice = 0;
-            appState.cart.forEach((item, i) => {
-                totalQty += item.quantity;
-                totalPrice += item.quantity * 100;
-                const div = document.createElement('div');
-                div.className = 'cart-item';
-                div.id = 'cart-item-' + i;
-                div.innerHTML = '<div class="cart-item-info"><h4>' + item.name + '</h4><p>₹100</p></div>' +
-                    '<div class="cart-item-qty"><button class="qty-btn cart-qty-dec" data-index="' + i + '">−</button>' +
-                    '<span class="qty-display">' + item.quantity + '</span>' +
-                    '<button class="qty-btn cart-qty-inc" data-index="' + i + '">+</button></div>' +
-                    '<div>₹' + (item.quantity * 100) + '</div>' +
-                    '<button class="btn btn--sm remove-cart-btn" data-index="' + i + '">Remove</button>';
-                cartItemsContainer.appendChild(div);
-                
-                // Add event listeners
-                div.querySelector('.cart-qty-dec')?.addEventListener('click', function() {
-                    updateCartItemQuantity(i, -1);
-                });
-                div.querySelector('.cart-qty-inc')?.addEventListener('click', function() {
-                    updateCartItemQuantity(i, 1);
-                });
-                div.querySelector('.remove-cart-btn')?.addEventListener('click', function() {
-                    removeFromCart(i);
-                });
-            });
-            if (totalItems) totalItems.textContent = totalQty;
-            if (totalAmount) totalAmount.textContent = '₹' + totalPrice;
+    try {
+        // Load cart from database
+        await persistentCart.loadCartFromDB();
+        
+        // Render the My Cart tab
+        persistentCart.renderMyCart();
+        
+        // Update cart count everywhere
+        const totalQty = persistentCart.persistentCartState.items.reduce((sum, item) => sum + item.quantity, 0);
+        
+        const cartItemCount = document.getElementById('cartItemCount');
+        if (cartItemCount) {
+            cartItemCount.textContent = totalQty;
         }
+        
+        // Update Review & Place Order button visibility
+        updateReviewOrderButton();
+    } catch (error) {
+        console.error('Error displaying cart:', error);
+        helpers.showToast('Failed to load cart', 'error');
     }
 }
 
@@ -972,39 +941,87 @@ function updateCartItemQuantity(i, c) {
     }
 }
 
-function removeFromCart(i) {
-    if (appState.cart[i]) {
-        const name = appState.cart[i].name;
-        appState.cart.splice(i, 1);
-        helpers.showToast(name + ' removed', 'info');
-        displayCart();
+async function removeFromCart(itemId) {
+    try {
+        await persistentCart.removeFromCartPersistent(itemId);
+        persistentCart.renderMyCart();
         updateReviewOrderButton();
+    } catch (error) {
+        console.error('Error removing item:', error);
     }
 }
 
-function handleCheckout() {
-    if (appState.cart.length === 0) { 
-        helpers.showToast('Cart empty', 'error'); 
-        return; 
+async function handleCheckout() {
+    // Get user data from auth manager
+    const userData = authManager.user;
+    
+    // Get form values with fallback to user data from registration
+    let deliveryAddress = document.getElementById('deliveryAddress')?.value?.trim();
+    let phone = document.getElementById('phone')?.value?.trim();
+    let fullName = document.getElementById('checkoutName')?.value?.trim();
+    
+    // Use registered data as fallback
+    if (!fullName && userData?.fullName) {
+        fullName = userData.fullName;
     }
-    const order = { 
-        id: Date.now(), 
-        items: JSON.parse(JSON.stringify(appState.cart)), 
-        totalAmount: appState.cart.reduce((s,i)=>s+i.quantity*100,0), 
-        status: 'pending', 
-        createdAt: new Date().toISOString() 
-    };
-    appState.orders.push(order);
+    if (!deliveryAddress && userData?.address) {
+        deliveryAddress = userData.address;
+    }
+    if (!phone && userData?.phone) {
+        phone = userData.phone;
+    }
     
-    // Clear cart after order is placed
-    appState.cart = [];
-    appState.medicineQuantities = {};
+    // Validate inputs
+    if (!fullName) {
+        helpers.showToast('Please enter your full name', 'error');
+        document.getElementById('checkoutName')?.focus();
+        return;
+    }
     
-    // Update cart count display
-    updateCartCountDisplay();
+    if (!phone) {
+        helpers.showToast('Please enter your phone number', 'error');
+        document.getElementById('phone')?.focus();
+        return;
+    }
     
-    helpers.showToast('Order placed!', 'success');
-    router.navigate('confirmation');
+    if (!deliveryAddress || deliveryAddress === '') {
+        helpers.showToast('Please enter delivery address', 'error');
+        document.getElementById('deliveryAddress')?.focus();
+        return;
+    }
+    
+    // Check if store is selected
+    const selectedStore = document.querySelector('input[name="store"]:checked');
+    if (!selectedStore) {
+        helpers.showToast('Please select a medical store', 'error');
+        return;
+    }
+    
+    try {
+        helpers.showToast('Placing order...', 'info');
+        
+        // Create order with persistent cart
+        const order = await persistentCart.createOrderFromCart(
+            deliveryAddress,
+            phone,
+            selectedStore.value
+        );
+        
+        if (order) {
+            // Display order placed page
+            persistentCart.displayOrderPlaced(order);
+            
+            // Clear local appState cart
+            appState.cart = [];
+            appState.medicineQuantities = {};
+            
+            // Navigate to order placed page
+            router.navigate('orderPlaced');
+        }
+    } catch (error) {
+        console.error('Checkout error:', error);
+        helpers.showToast('Failed to place order', 'error');
+    }
 }
 
 /**
@@ -1047,7 +1064,8 @@ function handleViewCart() {
 function updateReviewOrderButton() {
     const proceedSection = document.getElementById('proceedToCartSection');
     if (proceedSection) {
-        if (appState.cart.length > 0) {
+        const hasItems = persistentCart.persistentCartState.items.length > 0;
+        if (hasItems) {
             proceedSection.classList.remove('hidden');
         } else {
             proceedSection.classList.add('hidden');
@@ -1059,7 +1077,7 @@ function updateReviewOrderButton() {
  * Update cart count display everywhere
  */
 function updateCartCountDisplay() {
-    const totalQty = appState.cart.reduce((sum, item) => sum + item.quantity, 0);
+    const totalQty = persistentCart.persistentCartState.items.reduce((sum, item) => sum + item.quantity, 0);
     
     // Update in results page
     const cartItemCount = document.getElementById('cartItemCount');
@@ -1077,41 +1095,162 @@ function updateCartCountDisplay() {
 /**
  * Display checkout summary
  */
-function displayCheckoutSummary() {
-    const checkoutItemsContainer = document.getElementById('checkoutItems');
-    const checkoutSubtotal = document.getElementById('checkoutSubtotal');
-    const checkoutTotal = document.getElementById('checkoutTotal');
+async function displayCheckoutSummary() {
+    persistentCart.renderCheckoutSummary();
+    persistentCart.renderStoreSelection();
+}
+
+/**
+ * Initialize checkout page with store selection and form prefilling
+ */
+async function initializeCheckoutPageWithStores() {
+    console.log('Initializing checkout page with stores...');
     
-    if (!checkoutItemsContainer) return;
-    
-    if (appState.cart.length === 0) {
-        checkoutItemsContainer.innerHTML = '<p class="no-items">No items in cart</p>';
-        if (checkoutSubtotal) checkoutSubtotal.textContent = '₹0';
-        if (checkoutTotal) checkoutTotal.textContent = '₹0';
-        return;
+    // Prefill form with user's registered information
+    const userData = authManager.user;
+    if (userData) {
+        if (userData.fullName) {
+            const nameField = document.getElementById('checkoutName');
+            if (nameField) nameField.value = userData.fullName;
+        }
+        if (userData.phone) {
+            const phoneField = document.getElementById('phone');
+            if (phoneField) phoneField.value = userData.phone;
+        }
+        if (userData.address) {
+            const addressField = document.getElementById('deliveryAddress');
+            if (addressField) addressField.value = userData.address;
+        }
     }
     
-    checkoutItemsContainer.innerHTML = '';
-    let totalQty = 0, totalPrice = 0;
+    // Render checkout summary and store selection
+    await displayCheckoutSummary();
     
-    appState.cart.forEach(item => {
-        totalQty += item.quantity;
-        totalPrice += item.quantity * 100;
-        
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'checkout-item';
-        itemDiv.innerHTML = `
-            <div class="item-details">
-                <h5>${item.name}</h5>
-                <p>₹${item.price || 100} × ${item.quantity}</p>
-            </div>
-            <div class="item-price">₹${item.quantity * 100}</div>
-        `;
-        checkoutItemsContainer.appendChild(itemDiv);
+    // Setup place order button
+    const placeOrderBtn = document.getElementById('placeOrderBtn');
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', handleCheckout);
+    }
+}
+
+/**
+ * Switch between cart tabs (My Cart / Order History)
+ */
+function switchCartTab(tabName) {
+    const myCartContent = document.getElementById('my-cart');
+    const orderHistoryContent = document.getElementById('order-history');
+    const tabBtns = document.querySelectorAll('.cart-tabs .tab-btn');
+    
+    // Remove active class from all tab buttons and content
+    tabBtns.forEach(btn => btn.classList.remove('active'));
+    if (myCartContent) {
+        myCartContent.classList.remove('active');
+        myCartContent.style.display = 'none';
+    }
+    if (orderHistoryContent) {
+        orderHistoryContent.classList.remove('active');
+        orderHistoryContent.style.display = 'none';
+    }
+    
+    if (tabName === 'my-cart') {
+        // Activate My Cart tab
+        document.querySelector('.tab-btn[data-tab="my-cart"]')?.classList.add('active');
+        if (myCartContent) {
+            myCartContent.classList.add('active');
+            myCartContent.style.display = 'block';
+        }
+        displayCart();
+    } else if (tabName === 'order-history') {
+        // Activate Order History tab
+        document.querySelector('.tab-btn[data-tab="order-history"]')?.classList.add('active');
+        if (orderHistoryContent) {
+            orderHistoryContent.classList.add('active');
+            orderHistoryContent.style.display = 'block';
+        }
+        // Render order history asynchronously
+        persistentCart.renderOrderHistory().catch(err => {
+            console.error('Error rendering order history:', err);
+            helpers.showToast('Failed to load order history', 'error');
+        });
+    }
+}
+
+/**
+ * Initialize cart page (tabs and event handlers)
+ */
+async function initializeCartPage() {
+    console.log('Initializing cart page...');
+    
+    // Load cart from database
+    await displayCart();
+    
+    // Setup tab buttons with correct data-tab attributes
+    const tabButtons = document.querySelectorAll('.cart-tabs .tab-btn');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab; // Get data-tab attribute value
+            switchCartTab(tabName);
+        });
     });
     
-    if (checkoutSubtotal) checkoutSubtotal.textContent = '₹' + totalPrice;
-    if (checkoutTotal) checkoutTotal.textContent = '₹' + totalPrice;
+    // Initialize My Cart tab as active and render stores
+    switchCartTab('my-cart');
+    
+    // Setup checkout button
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', () => {
+            router.navigate('checkout');
+        });
+    }
+
+    // Setup analyze symptoms button from empty cart
+    const backToSymptomsBtn = document.getElementById('backToSymptomsBtn');
+    if (backToSymptomsBtn) {
+        backToSymptomsBtn.addEventListener('click', () => {
+            router.navigate('symptoms');
+        });
+    }
+}
+
+/**
+ * Initialize order placed page
+ */
+function initializeOrderPlacedPageUI() {
+    console.log('Initializing order placed page...');
+    
+    // New Analysis button (id is "newOrderBtn" based on HTML)
+    const newOrderBtn = document.getElementById('newOrderBtn');
+    if (newOrderBtn) {
+        newOrderBtn.addEventListener('click', handleNewAnalysis);
+    }
+    
+    // Track Order button
+    const trackOrderBtn = document.getElementById('trackOrderBtn');
+    if (trackOrderBtn) {
+        trackOrderBtn.addEventListener('click', () => {
+            const currentOrder = persistentCart.persistentCartState.currentOrder;
+            if (currentOrder) {
+                persistentCart.displayOrderTracking(currentOrder);
+                router.navigate('orderTracking');
+            }
+        });
+    }
+}
+
+/**
+ * Initialize order tracking page
+ */
+function initializeOrderTrackingPageUI() {
+    console.log('Initializing order tracking page...');
+    
+    // Back to cart button
+    const backToCartBtn = document.getElementById('backToCartFromTrackingBtn');
+    if (backToCartBtn) {
+        backToCartBtn.addEventListener('click', () => {
+            router.navigate('cart');
+        });
+    }
 }
 
 /**
@@ -1120,12 +1259,27 @@ function displayCheckoutSummary() {
 function initializeCheckoutPage() {
     console.log('Initializing checkout page...');
     
-    // Place Order button
+    // Place Order button - ensure event listener is attached
     const placeOrderBtn = document.getElementById('placeOrderBtn');
     if (placeOrderBtn) {
-        placeOrderBtn.addEventListener('click', () => {
+        // Remove any existing event listeners by cloning and replacing
+        const newBtn = placeOrderBtn.cloneNode(true);
+        placeOrderBtn.parentNode.replaceChild(newBtn, placeOrderBtn);
+        
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             console.log('Place Order clicked');
             handleCheckout();
+        });
+    }
+    
+    // Back to Cart button
+    const backBtn = document.getElementById('backToCartFromCheckoutBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            router.navigate('cart');
         });
     }
     
@@ -1159,8 +1313,23 @@ async function initializeApp() {
     initializeSymptomsPage();
     initializeSymptomsPageInteractions();
 
-    // Initialize checkout button
-    document.getElementById('checkoutBtn')?.addEventListener('click', handleCheckout);
+    // Initialize checkout button (navigate to checkout, not place order directly)
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', () => {
+            router.navigate('checkout');
+        });
+    }
+
+    // Load persistent cart if user is authenticated
+    if (authStatus.isAuthenticated) {
+        console.log('✅ Loading persistent cart for authenticated user...');
+        try {
+            await persistentCart.loadCartFromDB();
+        } catch (error) {
+            console.warn('Could not load cart on init:', error);
+        }
+    }
 
     // Determine which page to show
     if (authStatus.isAuthenticated) {
@@ -1188,3 +1357,8 @@ if (document.readyState === 'loading') {
 window.appState = appState;
 window.authManager = authManager;
 window.router = router;
+window.initializeCartPage = initializeCartPage;
+window.initializeCheckoutPageWithStores = initializeCheckoutPageWithStores;
+window.initializeOrderPlacedPageUI = initializeOrderPlacedPageUI;
+window.initializeOrderTrackingPageUI = initializeOrderTrackingPageUI;
+

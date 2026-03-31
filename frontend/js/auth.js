@@ -36,7 +36,7 @@ class AuthManager {
      */
     async register(formData) {
         try {
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch('http://localhost:3000/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -74,7 +74,7 @@ class AuthManager {
      */
     async login(email, password) {
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch('http://localhost:3000/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -133,7 +133,7 @@ class AuthManager {
         }
 
         try {
-            const response = await fetch('/api/auth/check', {
+            const response = await fetch('http://localhost:3000/api/auth/check', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this.token}`,

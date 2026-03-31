@@ -65,3 +65,7 @@ temp/
 # Misc
 .eslintcache
 .stylelintcache
+
+# Development Markdown Docs
+*.md
+!README.md

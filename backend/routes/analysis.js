@@ -2,7 +2,7 @@ import express from 'express';
 import { authenticateToken } from '../utils/token.js';
 import { saveAnalysis, getUserAnalyses } from '../utils/db.js';
 import { validateSymptoms } from '../utils/validation.js';
-import { SUCCESS_MESSAGES, ERROR_MESSAGES, HTTP_STATUS } from '../config.js';
+import { SUCCESS_MESSAGES, ERROR_MESSAGES, HTTP_STATUS, supabaseAdmin } from '../config.js';
 
 const router = express.Router();
 
@@ -93,7 +93,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
 
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
             .from('analyses')
             .select('*')
             .eq('id', id)

@@ -2237,3 +2237,11 @@ body {
   color: var(--color-text);
   margin-bottom: var(--space-12);
 }
+
+/* Tab Control Fix */
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}

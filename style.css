@@ -464,6 +464,10 @@ pre code {
   width: 100%;
 }
 
+#placeOrderBtn {
+  margin-bottom: var(--space-20);
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -938,13 +942,79 @@ body {
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-20);
+  gap: var(--space-16);
+  padding: var(--space-24);
+}
+
+.auth-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.auth-form .form-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.auth-form .form-control {
+  background: rgba(var(--color-white), 0.5);
+  border: 1px solid rgba(var(--color-border), 0.8);
+  color: var(--color-text);
+  padding: var(--space-10) var(--space-12);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.auth-form .form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-white);
+  box-shadow: 0 0 0 3px rgba(var(--color-teal-500-rgb), 0.1);
+}
+
+.auth-form .form-control::placeholder {
+  color: rgba(var(--color-text-secondary), 0.7);
 }
 
 .form-help {
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   margin-top: var(--space-4);
+  font-style: italic;
+}
+
+.auth-form .btn {
+  margin-top: var(--space-8);
+  padding: var(--space-12) var(--space-16);
+  font-weight: var(--font-weight-medium);
+}
+
+.form-footer {
+  text-align: center;
+  margin-top: var(--space-12);
+  padding-top: var(--space-16);
+  border-top: 1px solid rgba(var(--color-border), 0.5);
+}
+
+.form-footer p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.form-footer a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.form-footer a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
 }
 
 /* Symptom Page Styles */
@@ -1648,44 +1718,103 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modal.hidden {
+  display: none !important;
+}
+
+.modal-overlay {
   display: none;
 }
 
 .modal-content {
-  background: var(--color-surface);
+  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(var(--color-teal-500-rgb), 0.03) 100%);
+  border: 1px solid rgba(var(--color-teal-500-rgb), 0.1);
   border-radius: var(--radius-lg);
-  width: 90%;
+  width: 95%;
   max-width: 500px;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+  position: relative;
 }
 
 .modal-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-20);
-  border-bottom: 1px solid var(--color-card-border-inner);
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--space-24) var(--space-24) var(--space-16) var(--space-24);
+  border-bottom: 1px solid rgba(var(--color-border), 0.5);
+  position: relative;
+}
+
+.modal-header h2 {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--font-size-2xl);
+  color: var(--color-text);
+}
+
+.modal-header p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .modal-close {
   background: none;
   border: none;
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-3xl);
   cursor: pointer;
   color: var(--color-text-secondary);
+  transition: all var(--duration-fast) var(--ease-standard);
+  position: absolute;
+  top: var(--space-16);
+  right: var(--space-16);
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-base);
+}
+
+.modal-close:hover {
+  background: rgba(var(--color-text-secondary), 0.1);
+  color: var(--color-text);
 }
 
 .modal-body {
-  padding: var(--space-20);
+  padding: var(--space-24);
 }
 
 .modal-actions {

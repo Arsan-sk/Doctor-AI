@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin, DB_TABLES } from '../config.js';
+import { supabaseAdmin as supabase, DB_TABLES } from '../config.js';
 
 // ============================================
 // USER OPERATIONS
