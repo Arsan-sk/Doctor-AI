@@ -51,7 +51,7 @@ export async function getUserById(userId) {
  */
 export async function createUser(userData) {
     // Use admin client for registration to bypass RLS policies
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
         .from(DB_TABLES.USERS)
         .insert([userData])
         .select()

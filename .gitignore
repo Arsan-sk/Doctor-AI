@@ -69,3 +69,6 @@ temp/
 # Development Markdown Docs
 *.md
 !README.md
+
+# Deployment Guides
+VERCEL_DEPLOYMENT_INFO.txt

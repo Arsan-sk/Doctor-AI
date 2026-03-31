@@ -141,8 +141,10 @@ const HOST = process.env.HOST || 'localhost';
 // Flag to track if server is listening
 let isListening = false;
 
-const server = app.listen(PORT, HOST, () => {
-    isListening = true;
+// Only bind the port locally. Vercel runs the app directly as a serverless module.
+if (!process.env.VERCEL) {
+    const server = app.listen(PORT, HOST, () => {
+        isListening = true;
     console.log(`
 ╔════════════════════════════════════════╗
 ║    🩺 AI Doctor - Backend Server      ║
@@ -216,12 +218,13 @@ process.on('SIGTERM', () => {
     });
 });
 
-process.on('SIGINT', () => {
-    console.log('\n🛑 SIGINT received, closing server gracefully...');
-    server.close(() => {
-        console.log('✅ Server closed');
-        process.exit(0);
+    process.on('SIGINT', () => {
+        console.log('\n🛑 SIGINT received, closing server gracefully...');
+        server.close(() => {
+            console.log('✅ Server closed');
+            process.exit(0);
+        });
     });
-});
+}
 
 export default app;
